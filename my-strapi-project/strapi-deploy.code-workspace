@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../strapi-deploy"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
