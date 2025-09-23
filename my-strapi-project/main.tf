@@ -74,12 +74,9 @@ resource "aws_instance" "strapi_instance_gayathri" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
   key_name                   = var.key_pair_name
-  vpc_security_group_ids     = [aws_security_group.strapi_sg.id]
+  vpc_security_group_ids     = [aws_security_group.strapi_sg.id]  # Correct argument here
   associate_public_ip_address = true
   subnet_id                  = var.subnet_id
-  # ... rest of your config
-}
-
 
   user_data = <<-EOF
               #!/bin/bash
@@ -102,5 +99,6 @@ resource "aws_instance" "strapi_instance_gayathri" {
 
 output "ec2_public_ip" {
   description = "Public IP of the Strapi EC2 instance"
-  value       = aws_instance.strapi_instance.public_ip
+  value       = aws_instance.strapi_instance_gayathri.public_ip
 }
+
