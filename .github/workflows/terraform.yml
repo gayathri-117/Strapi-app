@@ -20,12 +20,15 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: my-strapi-project
 
       - name: Terraform Plan
         run: terraform plan
+        working-directory: my-strapi-project
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: my-strapi-project
 
       - name: Get EC2 Public IP
         id: getip
