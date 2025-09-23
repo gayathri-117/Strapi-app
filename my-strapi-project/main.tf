@@ -37,7 +37,8 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+
   }
 }
 
@@ -89,7 +90,8 @@ resource "aws_instance" "strapi_instance_gayathri" {
               docker pull ${var.docker_image}
               docker stop strapi || true
               docker rm strapi || true
-              docker run -d -p 1337:1337 --name strapi ${var.docker_image}
+             docker run -d -p 1337:1337 --name strapi \  -v /srv/strapi:/srv/app \
+              ${var.docker_image}
               EOF
 
   tags = {
