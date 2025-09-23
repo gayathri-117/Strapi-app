@@ -70,11 +70,11 @@ resource "aws_security_group" "strapi_sg" {
   }
 }
 
-resource "aws_instance" "strapi_instance" {
-  ami                         = data.aws_ami.ubuntu.id
+resource "aws_instance" "strapi_instance_gayathri" {
+m ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
   key_name                   = var.key_pair_name
-  security_group_ids          = [aws_security_group.strapi_sg.id]
+  vpc_security_group_ids     = [aws_security_group.strapi_sg.id]
   associate_public_ip_address = true
   subnet_id                  = var.subnet_id
 
