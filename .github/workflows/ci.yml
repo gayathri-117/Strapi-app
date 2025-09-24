@@ -26,22 +26,23 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Ensure ECR repository exists
-        id: ensure_ecr
         run: |
           set -e
           aws ecr describe-repositories --repository-names "${{ env.ECR_REPOSITORY }}" >/dev/null 2>&1 || \
             aws ecr create-repository --repository-name "${{ env.ECR_REPOSITORY }}"
 
-      - name: Login to Amazon ECR
-        id: login_ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR (masked)
+        run: |
+          PW=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
+          echo "::add-mask::$PW"
+          echo "$PW" | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
       - name: Build and push Docker image
         id: build_push
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./my-strapi-project
+          file: ./my-strapi-project/Dockerfile
           push: true
           tags: |
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
@@ -57,6 +58,3 @@ jobs:
       - name: Done
         run: |
           echo "CI finished. Image: ${{ steps.set_image.outputs.image }}"
-
-
-
