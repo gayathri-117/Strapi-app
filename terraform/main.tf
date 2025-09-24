@@ -11,7 +11,7 @@ data "aws_subnet" "selected" {
 }
 
 resource "aws_security_group" "strapi_sg" {
-  name        = "strapi-sg"
+  name        = "strapi-sg-"
   description = "Allow SSH and Strapi port"
   vpc_id      = data.aws_vpc.selected.id
 
@@ -77,7 +77,7 @@ resource "aws_instance" "app" {
   EOF
 
   tags = {
-    Name = "strapi-ec2"
+    Name = "strapi-ec2-gayathri"
   }
 }
 
