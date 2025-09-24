@@ -11,7 +11,9 @@ variable "ecr_repository" {
   type = string
 }
 
-variable "image_tag" {
+# Full image: registry/repo:tag (e.g.
+# 145065858967.dkr.ecr.ap-south-1.amazonaws.com/strapi-app-gayathri:66cf966)
+variable "image_full" {
   type = string
 }
 
