@@ -1,6 +1,6 @@
 # Create an EC2 role that allows EC2 to assume it
 resource "aws_iam_role" "ec2_ecr_full_access_role" {
-  name = "ec2_ecr_full_access_role"
+  name = "ec2_ecr_full_access_role_"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
