@@ -12,24 +12,19 @@ resource "aws_iam_role" "ec2_ecr_full_access_role" {
   })
 }
 
-# Attach AWS-managed policies only (no custom policies)
-resource "aws_iam_role_policy_attachment" "ecr_full" {
-  role       = aws_iam_role.ec2_ecr_full_access_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+
+# Use an existing IAM role created by admin (or you)
+variable "existing_iam_role_name" {
+  type    = string
+  default = "ec2_ecr_full_access_role" # change if the role has a different name
 }
 
-resource "aws_iam_role_policy_attachment" "ec2_full" {
-  role       = aws_iam_role.ec2_ecr_full_access_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+data "aws_iam_role" "ec2_role" {
+  name = var.existing_iam_role_name
 }
 
-resource "aws_iam_role_policy_attachment" "ssm_core" {
-  role       = aws_iam_role.ec2_ecr_full_access_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+data "aws_iam_instance_profile" "ec2_profile" {
+  # if the instance profile name equals the role name, use that
+  name = var.existing_iam_role_name
 }
 
-# Instance profile so EC2 instances can assume the role
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2_ecr_full_access_profile"
-  role = aws_iam_role.ec2_ecr_full_access_role.name
-}
