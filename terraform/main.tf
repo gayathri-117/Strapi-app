@@ -11,7 +11,7 @@ data "aws_subnet" "selected" {
 }
 
 resource "aws_security_group" "strapi_sg" {
-  name        = "strapi-sg-"
+  name        = "strapi-sg"
   description = "Allow SSH and Strapi port"
   vpc_id      = data.aws_vpc.selected.id
 
@@ -39,9 +39,40 @@ resource "aws_security_group" "strapi_sg" {
   }
 }
 
-# NOTE: IAM role & instance profile are defined in terraform/iam.tf (do NOT duplicate here)
-# The EC2 instance will use the instance profile created in iam.tf:
-#   resource "aws_iam_instance_profile" "ec2_profile" { name = "ec2_ecr_full_access_profile" ... }
+data "aws_iam_policy" "ecr_readonly" {
+  arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+data "aws_iam_policy" "ssm" {
+  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role" "ec2_role" {
+  name = "ec2-ecr-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = data.aws_iam_policy.ecr_readonly.arn
+}
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = data.aws_iam_policy.ssm.arn
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "ec2-profile"
+  role = aws_iam_role.ec2_role.name
+}
 
 data "aws_ami" "amzn2" {
   most_recent = true
@@ -54,15 +85,13 @@ data "aws_ami" "amzn2" {
 }
 
 resource "aws_instance" "app" {
-  ami                         = data.aws_ami.amzn2.id
-  instance_type               = var.instance_type
-  subnet_id                   = data.aws_subnet.selected.id
-  vpc_security_group_ids      = [aws_security_group.strapi_sg.id]
+  ami                    = data.aws_ami.amzn2.id
+  instance_type          = var.instance_type
+  subnet_id              = data.aws_subnet.selected.id
+  vpc_security_group_ids = [aws_security_group.strapi_sg.id]
   associate_public_ip_address = true
-  key_name                    = var.key_name
-
-  # Use the instance profile created in iam.tf
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  key_name               = var.key_name
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
   user_data = <<-EOF
     #!/bin/bash
@@ -77,7 +106,7 @@ resource "aws_instance" "app" {
   EOF
 
   tags = {
-    Name = "strapi-ec2-gayathri"
+    Name = "strapi-ec2"
   }
 }
 
