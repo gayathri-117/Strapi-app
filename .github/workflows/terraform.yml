@@ -1,0 +1,45 @@
+name: CD - Terraform apply (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_full:
+        description: "Full image (registry/repo:tag) from CI (e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com/strapi-app:66cf966)"
+        required: true
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.6"
+
+      - name: Terraform init
+        working-directory: ./terraform
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        working-directory: ./terraform
+        env:
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_ecr_repository: ${{ secrets.ECR_REPOSITORY }}
+          TF_VAR_vpc_id: ${{ secrets.VPC_ID }}
+          TF_VAR_subnet_id: ${{ secrets.SUBNET_ID }}
+          TF_VAR_key_name: ${{ secrets.KEY_NAME }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_image_full: ${{ github.event.inputs.image_full }}
+        run: |
+          terraform apply -auto-approve -input=false
