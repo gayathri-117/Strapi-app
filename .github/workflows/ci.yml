@@ -46,20 +46,18 @@ jobs:
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
-      - name: Set image output
-        id: set-image
-        run: |
-          IMAGE=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
-          echo "Pushed image: ${IMAGE}"
-      
-      # Optional: automatically notify or trigger CD workflow (uncomment and adapt if you want auto deploy)
-      # - name: Trigger Terraform workflow (example - repository_dispatch)
-      #   uses: peter-evans/repository-dispatch@v2
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     event-type: ci-image-built
-      #     client-payload: '{"image":"${{ steps.set-image.outputs.image }}"}'
+      - name: Build and push Docker image
+        id: build-image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
-      - name: Done
-        run: echo "CI finished. Image: ${{ steps.set-image.outputs.image }}"
+      - name: Output image tag
+        run: |
+          echo "Image pushed: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+
