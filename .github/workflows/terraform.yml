@@ -10,6 +10,8 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    env:
+      TF_IN_AUTOMATION: "1"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -30,7 +32,11 @@ jobs:
         working-directory: ./terraform
         run: terraform init -input=false
 
-      - name: Terraform apply
+      - name: Terraform validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform plan
         working-directory: ./terraform
         env:
           TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
@@ -42,4 +48,31 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           TF_VAR_image_full: ${{ github.event.inputs.image_full }}
         run: |
-          terraform apply -auto-approve -input=false
+          terraform plan -input=false -out=plan.tfplan \
+            -var="image_full=${{ github.event.inputs.image_full }}" \
+            -var="aws_region=${{ secrets.AWS_REGION }}" \
+            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="ecr_repository=${{ secrets.ECR_REPOSITORY }}" \
+            -var="vpc_id=${{ secrets.VPC_ID }}" \
+            -var="subnet_id=${{ secrets.SUBNET_ID }}" \
+            -var="key_name=${{ secrets.KEY_NAME }}" \
+            -var="ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}"
+
+      - name: Terraform apply (from plan)
+        working-directory: ./terraform
+        env:
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_ecr_repository: ${{ secrets.ECR_REPOSITORY }}
+          TF_VAR_vpc_id: ${{ secrets.VPC_ID }}
+          TF_VAR_subnet_id: ${{ secrets.SUBNET_ID }}
+          TF_VAR_key_name: ${{ secrets.KEY_NAME }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_image_full: ${{ github.event.inputs.image_full }}
+        run: |
+          terraform apply -input=false -auto-approve plan.tfplan
+
+      - name: Show Terraform outputs (JSON)
+        working-directory: ./terraform
+        run: terraform output -json
+
