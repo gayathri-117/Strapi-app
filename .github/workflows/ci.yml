@@ -55,4 +55,8 @@ jobs:
           echo "Pushed image: ${IMAGE}"
 
       - name: Done
-        run: echo "CI finished. Image: ${{ steps.set_image.outputs.image }}"
+        run: |
+          echo "CI finished. Image: ${{ steps.set_image.outputs.image }}"
+
+
+
