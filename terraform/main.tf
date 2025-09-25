@@ -10,8 +10,13 @@ data "aws_subnet" "selected" {
   id = var.subnet_id
 }
 
+# stable random suffix to avoid name collisions
+resource "random_pet" "suffix" {
+  length = 2
+}
+
 resource "aws_security_group" "strapi_sg" {
-  name        = "strapi-sg"
+  name        = "strapi-sg-${random_pet.suffix.id}"
   description = "Allow SSH and Strapi port"
   vpc_id      = data.aws_vpc.selected.id
 
@@ -37,6 +42,10 @@ resource "aws_security_group" "strapi_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "strapi-sg-${random_pet.suffix.id}"
+  }
 }
 
 data "aws_iam_policy" "ecr_readonly" {
@@ -48,7 +57,7 @@ data "aws_iam_policy" "ssm" {
 }
 
 resource "aws_iam_role" "ec2_role" {
-  name = "ec2-ecr-role"
+  name = "ec2-ecr-role-${random_pet.suffix.id}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -64,13 +73,14 @@ resource "aws_iam_role_policy_attachment" "ecr_attach" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = data.aws_iam_policy.ecr_readonly.arn
 }
+
 resource "aws_iam_role_policy_attachment" "ssm_attach" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = data.aws_iam_policy.ssm.arn
 }
 
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2-profile"
+  name = "ec2-profile-${random_pet.suffix.id}"
   role = aws_iam_role.ec2_role.name
 }
 
@@ -85,13 +95,13 @@ data "aws_ami" "amzn2" {
 }
 
 resource "aws_instance" "app" {
-  ami                    = data.aws_ami.amzn2.id
-  instance_type          = var.instance_type
-  subnet_id              = data.aws_subnet.selected.id
-  vpc_security_group_ids = [aws_security_group.strapi_sg.id]
+  ami                         = data.aws_ami.amzn2.id
+  instance_type               = var.instance_type
+  subnet_id                   = data.aws_subnet.selected.id
+  vpc_security_group_ids      = [aws_security_group.strapi_sg.id]
   associate_public_ip_address = true
-  key_name               = var.key_name
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  key_name                    = var.key_name
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
 
   user_data = <<-EOF
     #!/bin/bash
@@ -106,7 +116,7 @@ resource "aws_instance" "app" {
   EOF
 
   tags = {
-    Name = "strapi-ec2"
+    Name = "strapi-ec2-${random_pet.suffix.id}"
   }
 }
 
@@ -117,25 +127,4 @@ resource "null_resource" "deploy_container" {
     instance_id = aws_instance.app.id
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      # login to ECR (keeps login using account & region)
-      "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com",
-      # pull and run the exact image provided by CI
-      "docker pull ${var.image_full}",
-      "docker rm -f strapi || true",
-      "docker run -d --restart unless-stopped -p 1337:1337 --name strapi ${var.image_full}"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      host        = aws_instance.app.public_ip
-      private_key = var.ssh_private_key
-    }
-  }
-
-  depends_on = [
-    aws_instance.app
-  ]
-}
+  provisioner "
