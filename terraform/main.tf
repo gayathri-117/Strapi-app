@@ -1,7 +1,21 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
 
+# Data lookups for VPC/subnet/AMI
 data "aws_vpc" "selected" {
   id = var.vpc_id
 }
@@ -10,11 +24,21 @@ data "aws_subnet" "selected" {
   id = var.subnet_id
 }
 
-# stable random suffix to avoid name collisions
+data "aws_ami" "amzn2" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+# stable unique suffix to avoid collisions
 resource "random_pet" "suffix" {
   length = 2
 }
 
+# Security group (unique per VPC thanks to suffix)
 resource "aws_security_group" "strapi_sg" {
   name        = "strapi-sg-${random_pet.suffix.id}"
   description = "Allow SSH and Strapi port"
@@ -25,7 +49,7 @@ resource "aws_security_group" "strapi_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.ssh_allow_cidrs
   }
 
   ingress {
@@ -33,7 +57,7 @@ resource "aws_security_group" "strapi_sg" {
     from_port   = 1337
     to_port     = 1337
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.app_allow_cidrs
   }
 
   egress {
@@ -45,17 +69,11 @@ resource "aws_security_group" "strapi_sg" {
 
   tags = {
     Name = "strapi-sg-${random_pet.suffix.id}"
+    env  = var.environment
   }
 }
 
-data "aws_iam_policy" "ecr_readonly" {
-  arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-data "aws_iam_policy" "ssm" {
-  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
+# IAM role and profile
 resource "aws_iam_role" "ec2_role" {
   name = "ec2-ecr-role-${random_pet.suffix.id}"
 
@@ -67,6 +85,14 @@ resource "aws_iam_role" "ec2_role" {
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
+}
+
+data "aws_iam_policy" "ecr_readonly" {
+  arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+data "aws_iam_policy" "ssm" {
+  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_attach" {
@@ -84,16 +110,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   role = aws_iam_role.ec2_role.name
 }
 
-data "aws_ami" "amzn2" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
-
+# EC2 Instance
 resource "aws_instance" "app" {
   ami                         = data.aws_ami.amzn2.id
   instance_type               = var.instance_type
@@ -117,6 +134,7 @@ resource "aws_instance" "app" {
 
   tags = {
     Name = "strapi-ec2-${random_pet.suffix.id}"
+    env  = var.environment
   }
 }
 
@@ -129,9 +147,8 @@ resource "null_resource" "deploy_container" {
 
   provisioner "remote-exec" {
     inline = [
-      # login to ECR (keeps login using account & region)
+      # login to ECR and run container
       "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com",
-      # pull and run the exact image provided by CI
       "docker pull ${var.image_full}",
       "docker rm -f strapi || true",
       "docker run -d --restart unless-stopped -p 1337:1337 --name strapi ${var.image_full}"
@@ -141,6 +158,7 @@ resource "null_resource" "deploy_container" {
       type        = "ssh"
       user        = "ec2-user"
       host        = aws_instance.app.public_ip
+      # If TF var contains the PEM content, keep as below. If var is a path, change to file(var.ssh_private_key)
       private_key = var.ssh_private_key
     }
   }
@@ -149,6 +167,3 @@ resource "null_resource" "deploy_container" {
     aws_instance.app
   ]
 }
-
-
-  provisioner "
