@@ -127,4 +127,28 @@ resource "null_resource" "deploy_container" {
     instance_id = aws_instance.app.id
   }
 
+  provisioner "remote-exec" {
+    inline = [
+      # login to ECR (keeps login using account & region)
+      "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com",
+      # pull and run the exact image provided by CI
+      "docker pull ${var.image_full}",
+      "docker rm -f strapi || true",
+      "docker run -d --restart unless-stopped -p 1337:1337 --name strapi ${var.image_full}"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      host        = aws_instance.app.public_ip
+      private_key = var.ssh_private_key
+    }
+  }
+
+  depends_on = [
+    aws_instance.app
+  ]
+}
+
+
   provisioner "
