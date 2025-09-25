@@ -120,17 +120,18 @@ resource "aws_instance" "app" {
   key_name                    = var.key_name
   iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
 
-  user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    amazon-linux-extras install docker -y
-    systemctl enable docker
-    systemctl start docker
-    usermod -a -G docker ec2-user
-    yum install -y unzip
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
-    cd /tmp && unzip awscliv2.zip && ./aws/install
-  EOF
+user_data = <<-EOF
+#!/bin/bash
+yum update -y
+amazon-linux-extras install docker -y
+systemctl enable docker
+systemctl start docker
+usermod -a -G docker ec2-user
+yum install -y unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+cd /tmp && unzip awscliv2.zip && ./aws/install
+EOF
+
 
   tags = {
     Name = "strapi-ec2-${random_pet.suffix.id}"
@@ -158,8 +159,10 @@ resource "null_resource" "deploy_container" {
       type        = "ssh"
       user        = "ec2-user"
       host        = aws_instance.app.public_ip
-      # If TF var contains the PEM content, keep as below. If var is a path, change to file(var.ssh_private_key)
+      # If var.ssh_private_key contains the PEM text, keep as below:
       private_key = var.ssh_private_key
+      # If var.ssh_private_key is a path (e.g. "/home/runner/.ssh/id_rsa"), use:
+      # private_key = file(var.ssh_private_key)
     }
   }
 
