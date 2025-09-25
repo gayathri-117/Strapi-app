@@ -42,4 +42,4 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           TF_VAR_image_full: ${{ github.event.inputs.image_full }}
         run: |
-          terraform apply -auto-approve -input=false  ANYTHING TO UPDATE IN THIS FILE
+          terraform apply -auto-approve -input=false  
