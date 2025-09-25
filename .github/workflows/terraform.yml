@@ -28,17 +28,20 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.6.0' # change if you need a different version
+          terraform_version: '1.6.0'
 
-      - name: Export TF env vars (pass secrets into Terraform as variables)
+      # ---- SAFE SSH KEY HANDLING ----
+      - name: Write SSH key to file and export TF_VAR path
         run: |
-          echo "TF_VAR_ssh_private_key=${{ secrets.SSH_PRIVATE_KEY }}" >> $GITHUB_ENV
+          # write secret multiline PEM to a file
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa
+          chmod 600 id_rsa
+          # export the path as TF_VAR_ so terraform picks it up as var.ssh_private_key
+          echo "TF_VAR_ssh_private_key=$(pwd)/id_rsa" >> $GITHUB_ENV
+          # export other single-line TF vars
           echo "TF_VAR_aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+        shell: bash
 
       - name: Terraform init
         run: terraform init -input=false
@@ -56,3 +59,8 @@ jobs:
 
       - name: Terraform apply
         run: terraform apply -auto-approve tfplan
+
+      - name: Clean up SSH key file
+        if: always()
+        run: |
+          rm -f id_rsa
