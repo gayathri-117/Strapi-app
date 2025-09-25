@@ -1,40 +1,59 @@
 variable "aws_region" {
-  type    = string
-  default = "ap-south-1"
-}
-
-variable "aws_account_id" {
-  type = string
-}
-
-variable "ecr_repository" {
-  type = string
-}
-
-# Full image: registry/repo:tag (e.g.
-# 145065858967.dkr.ecr.ap-south-1.amazonaws.com/strapi-app-gayathri:66cf966)
-variable "image_full" {
-  type = string
-}
-
-variable "key_name" {
-  type = string
-}
-
-variable "ssh_private_key" {
-  type      = string
-  sensitive = true
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
 }
 
 variable "vpc_id" {
-  type = string
+  description = "VPC id where resources will be created"
+  type        = string
 }
 
 variable "subnet_id" {
-  type = string
+  description = "Subnet id for the EC2 instance"
+  type        = string
 }
 
 variable "instance_type" {
-  type    = string
-  default = "t3.micro"
+  description = "EC2 instance type (flavor), e.g. t3.small"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "key_name" {
+  description = "Name of the EC2 KeyPair (must exist in the region)"
+  type        = string
+}
+
+variable "ssh_private_key" {
+  description = "SSH private key content (PEM). For connection to EC2 provisioner."
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_account_id" {
+  description = "AWS account id used to compose ECR registry URL"
+  type        = string
+}
+
+variable "image_full" {
+  description = "Full image registry path with tag (e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:tag)"
+  type        = string
+  default     = ""
+}
+
+variable "environment" {
+  description = "Environment name (dev/test/prod). Used for tags and naming."
+  type        = string
+  default     = "dev"
+}
+
+variable "app_allow_cidrs" {
+  type    = list(string)
+  default = ["0.0.0.0/0"] # change for production; restrict to needed IPs
+}
+
+variable "ssh_allow_cidrs" {
+  type    = list(string)
+  default = ["0.0.0.0/0"] # change for production; restrict to your IP/runners or use SSM
 }
