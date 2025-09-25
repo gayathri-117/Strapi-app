@@ -159,10 +159,10 @@ resource "null_resource" "deploy_container" {
       type        = "ssh"
       user        = "ec2-user"
       host        = aws_instance.app.public_ip
-      # If var.ssh_private_key contains the PEM text, keep as below:
-      private_key = var.ssh_private_key
-      # If var.ssh_private_key is a path (e.g. "/home/runner/.ssh/id_rsa"), use:
-      # private_key = file(var.ssh_private_key)
+      # terraform will read the private key from a file path
+      private_key = file(var.ssh_private_key)
+      # optional: increase timeouts / retries
+      timeout     = "2m"
     }
   }
 
@@ -170,3 +170,4 @@ resource "null_resource" "deploy_container" {
     aws_instance.app
   ]
 }
+
