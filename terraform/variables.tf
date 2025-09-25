@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
 variable "vpc_id" {
@@ -31,6 +31,10 @@ variable "ssh_private_key" {
   sensitive   = true
 }
 
+# Optional: derive account_id automatically (removes need for manual input)
+# data "aws_caller_identity" "current" {}
+# output "aws_account_id" { value = data.aws_caller_identity.current.account_id }
+
 variable "aws_account_id" {
   description = "AWS account id used to compose ECR registry URL"
   type        = string
@@ -39,7 +43,6 @@ variable "aws_account_id" {
 variable "image_full" {
   description = "Full image registry path with tag (e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:tag)"
   type        = string
-  default     = ""
 }
 
 variable "environment" {
@@ -49,11 +52,13 @@ variable "environment" {
 }
 
 variable "app_allow_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"] # change for production; restrict to needed IPs
+  description = "Allowed CIDRs for accessing Strapi app (default: open to all)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"] # 🔴 Restrict in production
 }
 
 variable "ssh_allow_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"] # change for production; restrict to your IP/runners or use SSM
+  description = "Allowed CIDRs for SSH access (default: open to all)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"] # 🔴 Restrict in production
 }
