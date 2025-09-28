@@ -26,7 +26,6 @@ jobs:
           find . -maxdepth 3 -type f -name "*.tf" -print || true
 
       - name: Write SSH key to file and export TF_VAR path
-        # This safely writes a multiline PEM to a file and exports the file path for Terraform
         run: |
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa
           chmod 600 id_rsa
@@ -37,18 +36,18 @@ jobs:
           echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
           echo "TF_VAR_image_full=${{ github.event.inputs.image_full }}" >> $GITHUB_ENV
-          echo "TF_VAR_instance_profile_name=${{ secrets.INSTANCE_PROFILE_NAME }}" >> $GITHUB_ENV  # <-- ADD THIS LINE
+          echo "TF_VAR_instance_profile_name=${{ secrets.INSTANCE_PROFILE_NAME }}" >> $GITHUB_ENV
         shell: bash
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.6.0'
 
@@ -61,12 +60,11 @@ jobs:
         run: terraform fmt && terraform validate
 
       - name: Terraform plan
-        id: plan
         working-directory: ./terraform
         env:
           TF_VAR_instance_profile_name: ${{ secrets.INSTANCE_PROFILE_NAME }}
           TF_VAR_image_full: ${{ github.event.inputs.image_full }}
-          run: terraform plan -input=false -out=tfplan 
+        run: terraform plan -input=false -out=tfplan
 
       - name: Show plan (optional)
         working-directory: ./terraform
@@ -74,6 +72,9 @@ jobs:
 
       - name: Terraform apply
         working-directory: ./terraform
+        env:
+          TF_VAR_instance_profile_name: ${{ secrets.INSTANCE_PROFILE_NAME }}
+          TF_VAR_image_full: ${{ github.event.inputs.image_full }}
         run: terraform apply -auto-approve tfplan
 
       - name: Cleanup TF plan file
