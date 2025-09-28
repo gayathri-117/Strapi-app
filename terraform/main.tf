@@ -110,7 +110,7 @@ resource "aws_instance" "app" {
   EOF
 
   tags = {
-    Name = "strapi_app_gayathri-${random_pet.suffix.id}"  # Updated EC2 instance Name
+    Name = "strapi_app_gayathri-${random_pet.suffix.id}"
     env  = var.environment
   }
 }
@@ -144,10 +144,7 @@ resource "null_resource" "deploy_container" {
     }
   }
 
-  depends_on = [
-    aws_instance.app
-  ]
+  depends_on = [aws_instance.app]
 }
 
-}
 
