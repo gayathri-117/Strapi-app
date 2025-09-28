@@ -66,7 +66,7 @@ jobs:
         env:
           TF_VAR_instance_profile_name: ${{ secrets.INSTANCE_PROFILE_NAME }}
           TF_VAR_image_full: ${{ github.event.inputs.image_full }}
-        run: terraform apply -auto-approve tfplan
+          run: terraform plan -input=false -out=tfplan 
 
       - name: Show plan (optional)
         working-directory: ./terraform
