@@ -1,24 +1,20 @@
-output "instance_id" {
-  description = "EC2 instance id"
-  value       = aws_instance.app.id
-}
-
-output "instance_public_ip" {
-  description = "EC2 public IP"
-  value       = aws_instance.app.public_ip
-}
-
 output "security_group_id" {
-  description = "Created Security Group ID"
+  description = "ID of the created security group"
   value       = aws_security_group.strapi_sg.id
 }
 
-output "iam_role_name" {
-  description = "IAM role name for EC2"
-  value       = aws_iam_role.ec2_role.name
+output "instance_id" {
+  description = "ID of the EC2 instance"
+  value       = aws_instance.app.id
 }
 
-output "image_full" {
-  description = "Image deployed (input)"
-  value       = var.image_full
+output "public_ip" {
+  description = "Public IP of the EC2 instance"
+  value       = aws_instance.app.public_ip
+}
+
+# Since IAM is precreated, just echo what was provided
+output "instance_profile_used" {
+  description = "Precreated instance profile name used by the EC2 instance"
+  value       = var.instance_profile_name
 }
