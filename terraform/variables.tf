@@ -26,22 +26,26 @@ variable "key_name" {
 }
 
 variable "ssh_private_key" {
-  description = "SSH private key content (PEM). For connection to EC2 provisioner."
+  description = "Path to the SSH private key file (PEM). For provisioner connection."
   type        = string
   sensitive   = true
 }
 
-# Optional: derive account_id automatically (removes need for manual input)
-# data "aws_caller_identity" "current" {}
-# output "aws_account_id" { value = data.aws_caller_identity.current.account_id }
+# Automatically fetch AWS account ID so you don't have to hardcode it.
+data "aws_caller_identity" "current" {}
 
 variable "aws_account_id" {
   description = "AWS account id used to compose ECR registry URL"
   type        = string
+  default     = "" # Will be overridden dynamically below
+}
+
+locals {
+  resolved_aws_account_id = var.aws_account_id != "" ? var.aws_account_id : data.aws_caller_identity.current.account_id
 }
 
 variable "image_full" {
-  description = "Full image registry path with tag (e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:tag)"
+  description = "Full image registry path with tag (e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com/myrepo:tag)"
   type        = string
 }
 
@@ -62,3 +66,9 @@ variable "ssh_allow_cidrs" {
   type        = list(string)
   default     = ["0.0.0.0/0"] # 🔴 Restrict in production
 }
+
+variable "instance_profile_name" {
+  description = "Precreated EC2 instance profile name (attach role with ECR+SSM permissions)"
+  type        = string
+}
+
