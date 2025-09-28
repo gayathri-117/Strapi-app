@@ -37,6 +37,7 @@ jobs:
           echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
           echo "TF_VAR_image_full=${{ github.event.inputs.image_full }}" >> $GITHUB_ENV
+          echo "TF_VAR_instance_profile_name=${{ secrets.INSTANCE_PROFILE_NAME }}" >> $GITHUB_ENV  # <-- ADD THIS LINE
         shell: bash
 
       - name: Configure AWS credentials
